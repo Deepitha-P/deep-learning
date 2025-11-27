@@ -1,0 +1,654 @@
+INDEX (Ex number and its corresponding name):
+Ex-1 Drawing Confusion Matrix and Computation of Different Metrics for Classification
+Ex-2. Layer Visualization and Feature Maps in CNN
+Ex-3 Different Types of Data Augmentation Techniques
+Ex-4. Image Classification Using Pre-trained CNN models
+Ex-5. Transfer learning
+Ex-6. Feature extraction
+Ex-7. Image captioning
+
+##################################################################################################################
+
+Ex-1 Drawing Confusion Matrix and Computation of Different Metrics for Classification
+
+#Ex-1
+!pip install pycm
+from pycm import ConfusionMatrix
+import matplotlib.pyplot as plt
+import seaborn as sb
+import pandas as pd
+cf = {
+    "Apple":{"Apple":4,"Orange":0,"Cherry":2},
+    "Orange":{"Apple":0,"Orange":6,"Cherry":0},
+    "Cherry":{"Apple":2,"Orange":0,"Cherry":4}
+}
+
+confusion_matrix = ConfusionMatrix(matrix = cf)
+print(confusion_matrix)
+
+# Second method
+
+df = pd.DataFrame(cf).T
+plt.figure(figsize=(25,25))
+sb.heatmap(df,annot = True,fmt = "d",cmap = "YlGnBu")
+plt.title("Actual vs Predicted")
+plt.ylabel("Actual")
+plt.xlabel("Predicted")
+plt.show()
+
+##################################################################################################################
+
+Ex-2. Layer Visualization and Feature Maps in CNN
+
+from keras.applications.vgg16 import VGG16, preprocess_input
+from keras.preprocessing.image import load_img, img_to_array
+from keras.models import Model, Sequential
+from keras.layers import Dense
+import matplotlib.pyplot as plt
+from numpy import expand_dims
+import numpy as np
+
+# ==========================================================
+# 1️⃣ Load and summarize VGG16 model
+# ==========================================================
+print("\n=== LAYER VIS 1 ===\n")
+
+model = VGG16()
+model.summary()
+
+# Simple text summary visualization
+plt.figure(figsize=(10, 1))
+plt.text(0.01, 0.5, "VGG16 Model Loaded Successfully", fontsize=16, ha='left', va='center')
+plt.axis('off')
+plt.show()
+
+# ==========================================================
+# 2️⃣ Visualize Filters from Second Layer
+# ==========================================================
+print("\n=== LAYER VIS 2 — FILTER VISUALIZATION ===\n")
+
+filters, biases = model.layers[1].get_weights()
+
+# Normalize filter values to 0–1 for visualization
+f_min, f_max = filters.min(), filters.max()
+filters = (filters - f_min) / (f_max - f_min)
+
+# Plot first few filters
+n_filters, ix = 6, 1
+plt.figure(figsize=(8, 8))
+for i in range(n_filters):
+    f = filters[:, :, :, i]
+    for j in range(3):
+        ax = plt.subplot(n_filters, 3, ix)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        plt.imshow(f[:, :, j], cmap='gray')
+        ix += 1
+plt.suptitle("VGG16 First Conv Layer Filters", fontsize=14)
+plt.show()
+
+# ==========================================================
+# 3️⃣ Feature Maps from the First Convolutional Layer
+# ==========================================================
+print("\n=== LAYER VIS 3 — FEATURE MAPS FROM FIRST CONV LAYER ===\n")
+
+layer_model = Model(inputs=model.inputs, outputs=model.layers[1].output)
+
+# Load and preprocess image
+img = load_img('bird.jpg', target_size=(224, 224))
+img = img_to_array(img)
+img = expand_dims(img, axis=0)
+img = preprocess_input(img)
+
+# Extract feature maps
+feature_maps = layer_model.predict(img)
+
+# Plot 8x8 feature maps
+square = 8
+ix = 1
+plt.figure(figsize=(12, 12))
+for _ in range(square):
+    for _ in range(square):
+        ax = plt.subplot(square, square, ix)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        plt.imshow(feature_maps[0, :, :, ix-1], cmap='gray')
+        ix += 1
+plt.suptitle("Feature Maps from First Conv Layer", fontsize=14)
+plt.show()
+
+# ==========================================================
+# 4️⃣ Feature Maps from Multiple Convolutional Blocks
+# ==========================================================
+print("\n=== LAYER VIS 4 — MULTIPLE CONV BLOCKS FEATURE MAPS ===\n")
+
+ixs = [2, 5, 9, 13, 17]
+outputs = [model.layers[i].output for i in ixs]
+multi_model = Model(inputs=model.inputs, outputs=outputs)
+
+# Extract feature maps
+feature_maps = multi_model.predict(img)
+
+# Visualize maps from each block
+square = 8
+for layer_index, fmap in enumerate(feature_maps):
+    ix = 1
+    plt.figure(figsize=(12, 12))
+    for _ in range(square):
+        for _ in range(square):
+            ax = plt.subplot(square, square, ix)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            plt.imshow(fmap[0, :, :, ix-1], cmap='gray')
+            ix += 1
+    plt.suptitle(f"Feature Maps — Conv Block {layer_index + 1}", fontsize=14)
+    plt.show()
+
+# ==========================================================
+# 5️⃣ Simple Sequential Dense Model Visualization (Manual)
+# ==========================================================
+print("\n=== LAYER VIS 5 — SIMPLE SEQUENTIAL MODEL (DRAWN) ===\n")
+
+simple_model = Sequential()
+simple_model.add(Dense(2, input_dim=1, activation='relu'))
+simple_model.add(Dense(1, activation='sigmoid'))
+simple_model.summary()
+
+# Draw using Matplotlib
+plt.figure(figsize=(8, 3))
+plt.text(0.05, 0.6, 'Input Layer (1 neuron)', fontsize=12, bbox=dict(facecolor='lightblue', alpha=0.5))
+plt.text(0.4, 0.6, 'Dense Layer (2, ReLU)', fontsize=12, bbox=dict(facecolor='lightgreen', alpha=0.5))
+plt.text(0.75, 0.6, 'Output Layer (1, Sigmoid)', fontsize=12, bbox=dict(facecolor='lightcoral', alpha=0.5))
+plt.arrow(0.22, 0.62, 0.12, 0, head_width=0.02, head_length=0.02, fc='k', ec='k')
+plt.arrow(0.58, 0.62, 0.12, 0, head_width=0.02, head_length=0.02, fc='k', ec='k')
+plt.axis('off')
+plt.title("Simple Sequential Model Visualization", fontsize=14)
+plt.show()
+
+print("\n✅ All visualizations completed using only Matplotlib!")
+
+
+##################################################################################################################
+
+Ex-3 Different Types of Data Augmentation Techniques
+
+from numpy import expand_dims
+from tensorflow.keras.preprocessing.image import load_img, img_to_array, ImageDataGenerator
+import matplotlib.pyplot as plt
+
+# Load image
+img = load_img("cover_image.jpeg")
+arr = img_to_array(img)
+samples = expand_dims(arr, 0)
+
+# List of augmentations
+augmentations = [
+    ("Horizontal Shift", ImageDataGenerator(width_shift_range=0.2)),
+    ("Vertical Shift", ImageDataGenerator(height_shift_range=0.2)),
+    ("Horizontal Flip", ImageDataGenerator(horizontal_flip=True)),
+    ("Random Rotation", ImageDataGenerator(rotation_range=90)),
+    ("Random Brightness", ImageDataGenerator(brightness_range=[0.2, 0.8])),
+    ("Random Zooming", ImageDataGenerator(zoom_range=[0.2, 0.5]))
+]
+
+plt.figure(figsize=(12, 8))
+
+for i, (title, datagen) in enumerate(augmentations):
+    it = datagen.flow(samples, batch_size=1)
+    batch = next(it)
+    aug_img = batch[0].astype('uint8')
+    
+    plt.subplot(2, 3, i + 1)
+    plt.imshow(aug_img)
+    plt.title(title)
+    plt.axis("off")
+
+plt.tight_layout()
+plt.show()
+
+##################################################################################################################
+
+Ex-4. Image Classification Using Pre-trained CNN models
+
+from tensorflow.keras.applications import VGG16,VGG19,ResNet50,InceptionV3,Xception,imagenet_utils
+from tensorflow.keras.applications.inception_v3 import preprocess_input
+from tensorflow.keras.preprocessing.image import load_img,img_to_array
+import numpy as np
+
+model_name = "ResNet50"
+path = "bird.jpg"
+
+models = {
+    "VGG16":(VGG16,(224,224),imagenet_utils.preprocess_input),
+    "VGG19":(VGG19,(224,224),imagenet_utils.preprocess_input),
+    "ResNet50":(ResNet50,(224,224),imagenet_utils.preprocess_input),
+    "InceptionV3":(InceptionV3,(299,299),preprocess_input),
+    "xception":(Xception,(299,299),preprocess_input)
+}
+
+model,size,preprocess = models[model_name]
+Model = model(weights = "imagenet")
+img = load_img(path,target_size = size)
+arr = img_to_array(img)
+img = np.expand_dims(arr,0)
+img = preprocess(img)
+
+preds = Model.predict(img)
+decoded = imagenet_utils.decode_predictions(preds,top= 3)[0]
+
+for (i,(id,label,prob)) in enumerate(decoded):
+    print(f"{i+1} {label} : {prob*100:.2f}%")
+    
+##################################################################################################################
+
+Ex.5  Image classification using pre-trained CNN models after performing transfer learning.
+
+# ---------------------------------------------------------
+# IMPORTS
+# ---------------------------------------------------------
+import os
+import zipfile
+import numpy as np
+
+from keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
+from keras.models import load_model
+from keras import backend as K
+
+from PIL import Image
+import cv2
+import matplotlib.pyplot as plt
+
+# ---------------------------------------------------------
+# UPLOAD ZIP FILE MANUALLY IN COLAB BEFORE RUNNING THIS CELL
+# ---------------------------------------------------------
+zip_path = "/content/coffee_leaf_disease_classification.zip"   # <-- your uploaded zip
+model_path = "/content/inceptionresnetv2_coffee_transfer.hdf5" # <-- your uploaded model
+
+# ---------------------------------------------------------
+# UNZIP DATASET
+# ---------------------------------------------------------
+extract_folder = "/content/dataset_extracted"
+
+if not os.path.exists(extract_folder):
+    print("Extracting dataset...")
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(extract_folder)
+else:
+    print("Dataset already extracted.")
+
+# ---------------------------------------------------------
+# AUTO-DETECT ROOT DATA FOLDER
+# ---------------------------------------------------------
+root_items = os.listdir(extract_folder)
+if len(root_items) == 1 and os.path.isdir(os.path.join(extract_folder, root_items[0])):
+    data_dir = os.path.join(extract_folder, root_items[0])
+else:
+    data_dir = extract_folder
+
+print("Dataset directory:", data_dir)
+
+# ---------------------------------------------------------
+# LOAD MODEL
+# ---------------------------------------------------------
+model = load_model(model_path)
+print("Model Loaded Successfully!")
+
+K.set_learning_phase(0)
+
+# ---------------------------------------------------------
+# CLASS NAMES (DETECTED FROM FOLDER NAMES)
+# ---------------------------------------------------------
+classes = sorted([d for d in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, d))])
+print("Detected Classes:", classes)
+
+# ---------------------------------------------------------
+# IMAGE GENERATOR
+# ---------------------------------------------------------
+img_size = (299, 299)
+
+eval_gen = ImageDataGenerator(rescale=1./255)
+
+eval_generator = eval_gen.flow_from_directory(
+    data_dir,
+    target_size=img_size,
+    batch_size=16,
+    class_mode='categorical',
+    shuffle=False
+)
+
+# ---------------------------------------------------------
+# EVALUATE MODEL
+# ---------------------------------------------------------
+results = model.evaluate(eval_generator)
+print("\n---- Model Evaluation ----")
+for name, value in zip(model.metrics_names, results):
+    print(f"{name}: {value}")
+
+# ---------------------------------------------------------
+# PREPROCESS INPUT
+# ---------------------------------------------------------
+def preprocess_input(x):
+    x = img_to_array(x) / 255.
+    return np.expand_dims(x, axis=0)
+
+# ---------------------------------------------------------
+# PREDICT FUNCTIONS
+# ---------------------------------------------------------
+def predict_from_image_path(image_path):
+    img = load_img(image_path, target_size=img_size)
+    x = preprocess_input(img)
+    pred = model.predict(x)
+    idx = np.argmax(pred)
+    return idx, classes[idx]
+
+# ---------------------------------------------------------
+# GRAD CAM
+# ---------------------------------------------------------
+def grad_CAM(image_path):
+
+    image = load_img(image_path, target_size=img_size)
+    x = preprocess_input(image)
+
+    preds = model.predict(x)
+    index = np.argmax(preds)
+    class_output = model.output[:, index]
+
+    # Last conv layer for InceptionResNetV2
+    last_conv_layer = model.get_layer("conv_7b")
+    num_channels = last_conv_layer.output.shape[-1]
+
+    grads = K.gradients(class_output, last_conv_layer.output)[0]
+    pooled_grads = K.mean(grads, axis=(0, 1, 2))
+
+    iterate = K.function([model.input], [pooled_grads, last_conv_layer.output[0]])
+    pooled_grads_value, conv_layer_output_value = iterate([x])
+
+    for i in range(num_channels):
+        conv_layer_output_value[:, :, i] *= pooled_grads_value[i]
+
+    heatmap = np.mean(conv_layer_output_value, axis=-1)
+    heatmap = np.maximum(heatmap, 0)
+    heatmap /= np.max(heatmap)
+
+    img = cv2.imread(image_path)
+    heatmap = cv2.resize(heatmap, (img.shape[1], img.shape[0]))
+    heatmap = np.uint8(255 * heatmap)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+
+    superimposed_img = heatmap * 0.5 + img
+
+    output_path = "/content/gradcam_result.jpg"
+    cv2.imwrite(output_path, superimposed_img)
+
+    plt.figure(figsize=(12, 6))
+    plt.imshow(cv2.cvtColor(superimposed_img, cv2.COLOR_BGR2RGB))
+    plt.axis("off")
+    plt.show()
+
+# ---------------------------------------------------------
+# RUN PREDICTIONS ON ALL IMAGES
+# ---------------------------------------------------------
+print("\n======= TESTING IMAGES =======\n")
+
+for class_name in classes:
+    class_folder = os.path.join(data_dir, class_name)
+
+    for file in os.listdir(class_folder):
+        if file.lower().endswith(('.jpg', '.jpeg', '.png')):
+            img_path = os.path.join(class_folder, file)
+
+            pred_idx, pred_name = predict_from_image_path(img_path)
+
+            print(f"{file} → {pred_name}", end=" ")
+
+            if pred_name != class_name:
+                print(" **WRONG**")
+                grad_CAM(img_path)
+            else:
+                print("✓ Correct")
+
+
+##################################################################################################################
+
+Ex.6  Image classification using pre-trained CNN models after performing feature extraction.
+
+# ---------------------------------------------------------
+# IMPORTS
+# ---------------------------------------------------------
+import os
+import zipfile
+import numpy as np
+
+from keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
+from keras.models import load_model
+from keras import backend as K
+
+from PIL import Image
+import cv2
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
+K.set_learning_phase(0)
+
+# ---------------------------------------------------------
+# PATHS (FILES MUST BE UPLOADED MANUALLY IN COLAB)
+# ---------------------------------------------------------
+zip_path = "/content/coffee_leaf_disease_classification.zip"
+model_path = "/content/inceptionresnetv2_coffee_features.hdf5"
+
+# ---------------------------------------------------------
+# UNZIP DATASET
+# ---------------------------------------------------------
+extract_folder = "/content/dataset_extracted"
+
+if not os.path.exists(extract_folder):
+    print("Extracting dataset...")
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(extract_folder)
+else:
+    print("Dataset already extracted.")
+
+# ---------------------------------------------------------
+# AUTO-DETECT ROOT FOLDER
+# ---------------------------------------------------------
+items = os.listdir(extract_folder)
+if len(items) == 1 and os.path.isdir(os.path.join(extract_folder, items[0])):
+    data_dir = os.path.join(extract_folder, items[0])
+else:
+    data_dir = extract_folder
+
+print("Dataset Loaded From:", data_dir)
+
+# ---------------------------------------------------------
+# LOAD MODEL
+# ---------------------------------------------------------
+model = load_model(model_path)
+print("Model Loaded Successfully!")
+
+# ---------------------------------------------------------
+# DETECT CLASS NAMES
+# ---------------------------------------------------------
+classes = sorted([d for d in os.listdir(data_dir) 
+                  if os.path.isdir(os.path.join(data_dir, d))])
+print("Detected Classes:", classes)
+
+# ---------------------------------------------------------
+# IMAGE GENERATOR
+# ---------------------------------------------------------
+img_size = (299, 299)
+
+eval_datagen = ImageDataGenerator(rescale=1./255)
+
+eval_generator = eval_datagen.flow_from_directory(
+    data_dir,
+    target_size=img_size,
+    batch_size=16,
+    class_mode='categorical',
+    shuffle=False
+)
+
+# ---------------------------------------------------------
+# EVALUATE MODEL
+# ---------------------------------------------------------
+results = model.evaluate(eval_generator)
+print("\n==== MODEL EVALUATION ====")
+for name, value in zip(model.metrics_names, results):
+    print(f"{name}: {value}")
+
+# ---------------------------------------------------------
+# PREPROCESS INPUT
+# ---------------------------------------------------------
+def preprocess_input(x):
+    return np.expand_dims(img_to_array(x) / 255.0, axis=0)
+
+# ---------------------------------------------------------
+# PREDICT FROM IMAGE PATH
+# ---------------------------------------------------------
+def predict_from_image_path(image_path):
+    img = load_img(image_path, target_size=img_size)
+    x = preprocess_input(img)
+    pred = model.predict(x)
+    idx = np.argmax(pred)
+    return idx, classes[idx]
+
+# ---------------------------------------------------------
+# GRAD-CAM (LAST LAYER FOR INCEPTIONRESNETV2 = "conv_7b")
+# ---------------------------------------------------------
+def grad_CAM(image_path):
+    img = load_img(image_path, target_size=img_size)
+    x = preprocess_input(img)
+
+    preds = model.predict(x)
+    index = np.argmax(preds)
+
+    class_output = model.output[:, index]
+    last_conv_layer = model.get_layer("conv_7b")
+
+    grads = K.gradients(class_output, last_conv_layer.output)[0]
+    pooled_grads = K.mean(grads, axis=(0, 1, 2))
+
+    iterate = K.function([model.input], 
+                         [pooled_grads, last_conv_layer.output[0]])
+
+    pooled_grads_value, conv_layer_output_value = iterate([x])
+
+    for i in range(conv_layer_output_value.shape[-1]):
+        conv_layer_output_value[:, :, i] *= pooled_grads_value[i]
+
+    heatmap = np.mean(conv_layer_output_value, axis=-1)
+
+    heatmap = np.maximum(heatmap, 0)
+    heatmap /= np.max(heatmap)
+
+    img_cv = cv2.imread(image_path)
+    heatmap = cv2.resize(heatmap, (img_cv.shape[1], img_cv.shape[0]))
+    heatmap = np.uint8(255 * heatmap)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+
+    superimposed = heatmap * 0.5 + img_cv
+
+    plt.figure(figsize=(12,6))
+    plt.imshow(cv2.cvtColor(superimposed, cv2.COLOR_BGR2RGB))
+    plt.axis('off')
+    plt.show()
+
+# ---------------------------------------------------------
+# PREDICT ALL IMAGES
+# ---------------------------------------------------------
+print("\n==== PREDICTING IMAGES ====\n")
+
+for class_name in classes:
+    class_folder = os.path.join(data_dir, class_name)
+
+    for file in os.listdir(class_folder):
+        if file.lower().endswith(('.jpeg', '.jpg', '.png')):
+            img_path = os.path.join(class_folder, file)
+
+            pred_idx, pred_class = predict_from_image_path(img_path)
+
+            print(f"{file} → {pred_class}", end=" ")
+
+            if pred_class != class_name:
+                print(" **WRONG**")
+                grad_CAM(img_path)
+            else:
+                print(" ✓ Correct")
+
+
+
+##################################################################################################################
+
+Ex.7  Image captioning
+
+from pickle import load
+from numpy import argmax
+from keras.preprocessing.sequence import pad_sequences
+from keras.preprocessing.image import load_img, img_to_array
+from keras.applications.inception_resnet_v2 import InceptionResNetV2, preprocess_input
+from keras.models import Model, load_model
+import cv2
+import numpy as np
+
+# ---------------- Feature Extraction ----------------
+def extract_features(filename):
+    # load the pre-trained InceptionResNetV2 model + remove top layer
+    base_model = InceptionResNetV2(weights='imagenet', include_top=False, pooling='avg')
+    
+    # load the image
+    image = load_img(filename, target_size=(299, 299))
+    image = img_to_array(image)
+    image = np.expand_dims(image, axis=0)
+    
+    # preprocess the image for InceptionResNetV2
+    image = preprocess_input(image)
+    
+    # extract features
+    feature = base_model.predict(image, verbose=0)
+    return feature
+
+# ---------------- Map integer to word ----------------
+def word_for_id(integer, tokenizer):
+    for word, index in tokenizer.word_index.items():
+        if index == integer:
+            return word
+    return None
+
+# ---------------- Generate description ----------------
+def generate_desc(model, tokenizer, photo, max_length):
+    in_text = 'startseq'
+    for i in range(max_length):
+        sequence = tokenizer.texts_to_sequences([in_text])[0]
+        sequence = pad_sequences([sequence], maxlen=max_length)
+        yhat = model.predict([photo, sequence], verbose=0)
+        yhat = argmax(yhat)
+        word = word_for_id(yhat, tokenizer)
+        if word is None:
+            break
+        in_text += ' ' + word
+        if word == 'endseq':
+            break
+    return in_text
+
+# ---------------- Main ----------------
+# Load tokenizer and model
+tokenizer = load(open('tokenizer.pkl', 'rb'))
+max_length = 34  # same as training
+model = load_model('inceptionresnetv2_coffee_caption.hdf5')
+
+# Load and process an image
+image_path = 'example.jpg'  # replace with your image
+photo = extract_features(image_path)
+description = generate_desc(model, tokenizer, photo, max_length)
+
+# Display caption on the image
+orig = cv2.imread(image_path)
+cv2.putText(orig, description, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2, cv2.LINE_AA)
+cv2.imshow("CAPTION GENERATION", orig)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+print(description)
+
+
+
+
